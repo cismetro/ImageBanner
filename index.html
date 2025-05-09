@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redimensionador de Imagens</title>
+    <title>Conversor de Formatos de Imagem</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -64,9 +64,9 @@
 </head>
 <body class="bg-white dark:bg-[#181818] text-gray-800 dark:text-gray-200 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-5xl">
-        <h1 class="text-3xl font-bold text-center mb-6 text-primary">Redimensionador de Imagens</h1>
+        <h1 class="text-3xl font-bold text-center mb-6 text-primary">Redimensionador de Imagens - Banner</h1>
         <p class="text-center mb-4">
-            Arraste e solte suas imagens para redimensioná-las para <span class="font-semibold">2537×1136 pixels</span> com resolução de <span class="font-semibold">300 DPI</span> e profundidade de <span class="font-semibold">24 bits</span>
+            Arraste e solte suas imagens para redimensioná-las para <span class="font-semibold">314×191 pixels</span> com <span class="font-semibold">96 DPI</span> e profundidade de <span class="font-semibold">24 bits</span>.
         </p>
         
         <!-- Área de arrastar e soltar -->
@@ -111,303 +111,93 @@
     </div>
 
     <script>
-        // Verifica modo escuro
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-        }
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        });
-
         // Configurações de redimensionamento
-        const targetWidth = 2537;
-        const targetHeight = 1136;
-        const targetDpi = 300;
-        
-        // Elementos do DOM
+        const targetWidth = 314;
+        const targetHeight = 191;
+
+        // Seletores do DOM
         const dragArea = document.querySelector('.drag-area');
         const fileInput = document.getElementById('file-input');
         const browseBtn = document.getElementById('browse-btn');
         const previewContainer = document.getElementById('preview-container');
-        const totalFiles = document.getElementById('total-files');
-        const convertAllBtn = document.getElementById('convert-all-btn');
-        const downloadAllBtn = document.getElementById('download-all-btn');
-        const clearBtn = document.getElementById('clear-btn');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Array para armazenar arquivos
-        let files = [];
-        let processedFiles = [];
+        // Clique no botão de seleção
+        browseBtn.addEventListener('click', () => fileInput.click());
 
-        // Evento de clique no botão de navegação
-        browseBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // Processar arquivos selecionados
-        fileInput.addEventListener('change', function() {
-            const selectedFiles = Array.from(this.files);
+        // Processar arquivos selecionados via input
+        fileInput.addEventListener('change', (event) => {
+            const selectedFiles = Array.from(event.target.files);
             handleFiles(selectedFiles);
         });
 
         // Eventos de arrastar e soltar
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dragArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
         ['dragenter', 'dragover'].forEach(eventName => {
-            dragArea.addEventListener(eventName, () => {
+            dragArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 dragArea.classList.add('active');
             });
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
-            dragArea.addEventListener(eventName, () => {
+            dragArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 dragArea.classList.remove('active');
             });
         });
 
-        dragArea.addEventListener('drop', function(e) {
+        dragArea.addEventListener('drop', (e) => {
             const droppedFiles = Array.from(e.dataTransfer.files);
             handleFiles(droppedFiles);
         });
 
-        // Processar arquivos
+        // Processar os arquivos recebidos
         function handleFiles(selectedFiles) {
             const imageFiles = selectedFiles.filter(file => file.type.startsWith('image/'));
-            
+
             if (imageFiles.length === 0) return;
-            
+
             imageFiles.forEach(file => {
-                if (!files.some(f => f.name === file.name)) {
-                    files.push(file);
-                    createPreviewItem(file);
-                }
+                processFile(file);
             });
-            
-            updateUI();
         }
 
-        // Criar elemento de visualização para cada arquivo
-        function createPreviewItem(file) {
+        // Processar um único arquivo
+        function processFile(file) {
             const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const previewId = `preview-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9]/g, '')}`;
-                const previewItem = document.createElement('div');
-                previewItem.className = 'preview-item';
-                previewItem.dataset.filename = file.name;
-                previewItem.dataset.id = previewId;
-                
-                previewItem.innerHTML = `
-                    <div class="relative">
-                        <img src="${e.target.result}" alt="${file.name}" class="w-full h-48 object-cover">
-                        <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity">
-                            <button class="convert-btn bg-primary hover:bg-primary/90 text-white py-1 px-3 rounded text-sm mr-2">
-                                Converter
-                            </button>
-                            <button class="remove-btn bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm">
-                                Remover
-                            </button>
-                        </div>
-                        <div class="progress-bar"></div>
-                    </div>
-                    <div class="p-3">
-                        <p class="text-sm font-medium truncate" title="${file.name}">${file.name}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Original: <span class="original-size">Calculando...</span>
-                        </p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Novo: <span class="new-size">2537×1136, 300 DPI</span>
-                        </p>
-                        <a class="download-link hidden text-primary hover:text-primary/90 text-sm mt-2 inline-block" href="#" download="${file.name}">
-                            Baixar
-                        </a>
-                    </div>
-                `;
-                
-                previewContainer.appendChild(previewItem);
-                
-                // Calcular e mostrar o tamanho original da imagem
+            reader.onload = (e) => {
                 const img = new Image();
-                img.onload = function() {
-                    const originalSizeEl = previewItem.querySelector('.original-size');
-                    originalSizeEl.textContent = `${img.width}×${img.height}`;
+                img.onload = () => {
+                    // Configurar o canvas
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    // Redimensionar a imagem
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                    // Converter para blob
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+
+                        // Adicionar à visualização
+                        const previewItem = document.createElement('div');
+                        previewItem.classList.add('preview-item');
+                        previewItem.innerHTML = `
+                            <img src="${url}" alt="${file.name}" class="w-full h-auto">
+                            <div class="text-center mt-2">
+                                <a href="${url}" download="${file.name}" class="text-primary hover:underline">Baixar</a>
+                            </div>
+                        `;
+                        previewContainer.appendChild(previewItem);
+                    }, 'image/jpeg', 0.95);
                 };
                 img.src = e.target.result;
-                
-                // Adicionar eventos aos botões
-                const convertBtn = previewItem.querySelector('.convert-btn');
-                const removeBtn = previewItem.querySelector('.remove-btn');
-                
-                convertBtn.addEventListener('click', () => {
-                    convertImage(file, previewItem);
-                });
-                
-                removeBtn.addEventListener('click', () => {
-                    removeFile(previewItem);
-                });
             };
-            
             reader.readAsDataURL(file);
         }
-
-        // Converter imagem
-        function convertImage(file, previewItem) {
-            const img = new Image();
-            const progressBar = previewItem.querySelector('.progress-bar');
-            const downloadLink = previewItem.querySelector('.download-link');
-            
-            // Mostrar progresso
-            progressBar.style.width = '30%';
-            
-            img.onload = function() {
-                progressBar.style.width = '60%';
-                
-                // Configurar o canvas
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                
-                // Limpar o canvas
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Desenhar a imagem redimensionada
-                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-                
-                // Converter para blob (mantendo 24 bits)
-                canvas.toBlob(function(blob) {
-                    progressBar.style.width = '100%';
-                    
-                    // Criar URL para download
-                    const url = URL.createObjectURL(blob);
-                    downloadLink.href = url;
-                    downloadLink.classList.remove('hidden');
-                    
-                    // Adicionar aos arquivos processados
-                    const processedFile = {
-                        name: file.name,
-                        blob: blob,
-                        url: url
-                    };
-                    
-                    // Substituir se já existir ou adicionar
-                    const existingIndex = processedFiles.findIndex(f => f.name === file.name);
-                    if (existingIndex !== -1) {
-                        processedFiles[existingIndex] = processedFile;
-                    } else {
-                        processedFiles.push(processedFile);
-                    }
-                    
-                    updateUI();
-                    
-                    // Esconder a barra de progresso após um tempo
-                    setTimeout(() => {
-                        progressBar.style.width = '0%';
-                    }, 1000);
-                    
-                }, 'image/jpeg', 0.95); // JPEG com alta qualidade para manter 24 bits de profundidade
-            };
-            
-            img.src = URL.createObjectURL(file);
-        }
-
-        // Remover arquivo
-        function removeFile(previewItem) {
-            const filename = previewItem.dataset.filename;
-            
-            // Remover do array de arquivos
-            files = files.filter(file => file.name !== filename);
-            
-            // Remover do array de arquivos processados
-            processedFiles = processedFiles.filter(file => file.name !== filename);
-            
-            // Remover o elemento de visualização
-            previewItem.remove();
-            
-            updateUI();
-        }
-
-        // Atualizar a interface
-        function updateUI() {
-            totalFiles.textContent = files.length;
-            
-            // Mostrar/ocultar botões
-            convertAllBtn.classList.toggle('hidden', files.length === 0);
-            clearBtn.classList.toggle('hidden', files.length === 0);
-            downloadAllBtn.classList.toggle('hidden', processedFiles.length === 0);
-        }
-
-        // Converter todas as imagens
-        convertAllBtn.addEventListener('click', function() {
-            const previewItems = previewContainer.querySelectorAll('.preview-item');
-            
-            previewItems.forEach(item => {
-                const filename = item.dataset.filename;
-                const file = files.find(f => f.name === filename);
-                
-                if (file) {
-                    convertImage(file, item);
-                }
-            });
-        });
-
-        // Baixar todas as imagens
-        downloadAllBtn.addEventListener('click', function() {
-            if (processedFiles.length === 0) return;
-            
-            // Para poucos arquivos, podemos baixar um por um
-            if (processedFiles.length <= 5) {
-                processedFiles.forEach(file => {
-                    const link = document.createElement('a');
-                    link.href = file.url;
-                    link.download = file.name;
-                    link.click();
-                });
-            } else {
-                // Para muitos arquivos, precisamos criar um zip
-                alert("Para baixar muitos arquivos de uma vez, cada navegador tem um comportamento diferente. Você pode baixar individualmente clicando no link de cada imagem.");
-                
-                // Baixar um por um com intervalo para evitar bloqueio do navegador
-                let index = 0;
-                const downloadNext = () => {
-                    if (index < processedFiles.length) {
-                        const file = processedFiles[index];
-                        const link = document.createElement('a');
-                        link.href = file.url;
-                        link.download = file.name;
-                        link.click();
-                        
-                        index++;
-                        setTimeout(downloadNext, 1000); // Intervalo de 1 segundo
-                    }
-                };
-                
-                downloadNext();
-            }
-        });
-
-        // Limpar tudo
-        clearBtn.addEventListener('click', function() {
-            // Limpar arrays
-            files = [];
-            processedFiles = [];
-            
-            // Limpar visualização
-            previewContainer.innerHTML = '';
-            
-            updateUI();
-        });
     </script>
 </body>
 </html>
